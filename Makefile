@@ -7,4 +7,6 @@ lint:
 fix:
 		npx eslint --fix .
 test:
-		npx jest						
+		npx jest							
+test-coverage:
+		npx jest --coverage
