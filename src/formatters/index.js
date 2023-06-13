@@ -1,20 +1,16 @@
 import stylish from './stylish.js';
 import plain from './plain.js';
 
-const defineOutputFormat = (formatName) => {
-  switch (formatName) {
+const format = (tree, type) => {
+  switch (type) {
     case 'stylish':
-      return stylish;
-
+      return stylish(tree);
     case 'plain':
-      return plain;
-
+      return plain(tree);
     case 'json':
-      return JSON.stringify;
-
+      return JSON.stringify(tree);
     default:
-      throw new Error(`Unknown format name: '${formatName}'!`);
+      throw new Error(`format ${type} is not supported`);
   }
 };
-
-export default defineOutputFormat;
+export default format;

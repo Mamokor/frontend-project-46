@@ -1,30 +1,46 @@
 import _ from 'lodash';
 
 const buildDiff = (data1, data2) => {
-  const data1Keys = Object.keys(data1);
-  const data2Keys = Object.keys(data2);
-  const allKeys = data1Keys.concat(data2Keys);
-  const uniqueKeys = _.union(allKeys);
-  const sortedUniqueKeys = _.sortBy(uniqueKeys);
-
-  const diff = sortedUniqueKeys.map((key) => {
-    if (_.has(data1, key) && _.has(data2, key)) {
-      if (_.isPlainObject(data1[key]) && _.isPlainObject(data2[key])) {
-        return { key, children: buildDiff(data1[key], data2[key]), type: 'nested' };
-      }
-      if (_.isEqual(data1[key], data2[key])) {
-        return { key, value1: data1[key], type: 'unchanged' };
-      }
+  const keys1 = Object.keys(data1);
+  const keys2 = Object.keys(data2);
+  const sortKeys = _.sortBy(_.union(keys1, keys2));
+  const result = sortKeys.map((key) => {
+    if (_.isObject(data1[key]) && _.isObject(data2[key])) {
       return {
-        key, value1: data1[key], value2: data2[key], type: 'changed',
+        type: 'nested',
+        key,
+        children: buildDiff(data1[key], data2[key]),
       };
     }
-    if (_.has(data1, key) && !_.has(data2, key)) {
-      return { key, value1: data1[key], type: 'deleted' };
+    if (!_.has(data2, key)) {
+      return {
+        type: 'deleted',
+        key,
+        value: data1[key],
+      };
     }
-    return { key, value2: data2[key], type: 'added' };
+    if (!_.has(data1, key)) {
+      return {
+        type: 'added',
+        key,
+        value: data2[key],
+      };
+    }
+    if (!_.isEqual(data1[key], data2[key])) {
+      return {
+        type: 'changed',
+        key,
+        value1: data1[key],
+        value2: data2[key],
+      };
+    }
+    return {
+      type: 'unchanged',
+      key,
+      value: data1[key],
+    };
   });
-  return diff;
+  return result;
 };
 
 export default buildDiff;
