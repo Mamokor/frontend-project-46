@@ -10,6 +10,9 @@
   "scripts": {
     "test": "npx jest --bail"
   },
+  "simple-git-hooks": {
+    "pre-push": "make lint"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Mamokor/frontend-project-46.git"
