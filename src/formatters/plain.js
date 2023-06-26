@@ -1,35 +1,40 @@
 import _ from 'lodash';
 
-const stringify = (value) => {
+const getValueType = (value) => {
   if (_.isObject(value)) {
     return '[complex value]';
+  } if (typeof value === 'string') {
+    return `'${value}'`;
   }
-  return typeof value === 'string' ? `'${value}'` : value;
+  return value;
 };
 
-const plain = (data) => {
-  const iter = (node, key = '') => {
-    const result = node.flatMap((item) => {
-      const newKeys = [...key, item.key];
+const plain = (diff) => {
+  const iter = (data, path) => {
+    const result = data
+      .filter((node) => node.type !== 'unchanged')
+      .map((node) => {
+        const fullPath = (path === '') ? `${node.key}` : `${path}.${node.key}`;
+        switch (node.type) {
+          case 'nested':
+            return iter(node.children, fullPath);
 
-      switch (item.type) {
-        case 'nested':
-          return iter(item.children, newKeys);
-        case 'deleted':
-          return `Property '${newKeys.join('.')}' was removed`;
-        case 'added':
-          return `Property '${newKeys.join('.')}' was added with value: ${stringify(item.value)}`;
-        case 'changed':
-          return `Property '${newKeys.join('.')}' was updated. From ${stringify(item.value1)} to ${stringify(item.value2)}`;
-        case 'unchanged':
-          return null;
-        default:
-          throw new Error(`Unknown type ${item.type}`);
-      }
-    });
+          case 'deleted':
+            return `Property '${fullPath}' was removed`;
 
-    return result.filter((item) => item !== null).join('\n');
+          case 'added':
+            return `Property '${fullPath}' was added with value: ${getValueType(node.value2)}`;
+
+          case 'changed':
+            return `Property '${fullPath}' was updated. From ${getValueType(node.value1)} to ${getValueType(node.value2)}`;
+
+          default:
+            throw new Error(`Unknown type: '${node.type}'!`);
+        }
+      });
+    return [...result].join('\n');
   };
-  return iter(data, []);
+  return iter(diff, '');
 };
+
 export default plain;

@@ -1,40 +1,59 @@
 import _ from 'lodash';
 
-const genIndent = (depth, str = ' ', spacesCount = 4) => str.repeat((depth * spacesCount) - 2);
+export const getIndent = (depth, spacesCount = 4) => ' '.repeat((depth * spacesCount) - 2);
 
-const makeString = (value, depth = 1) => {
-  if (!_.isObject(value)) {
-    return value;
+export const getBracketIndent = (depth, spacesCount = 4) => ' '.repeat((depth * spacesCount) - spacesCount);
+
+export const stringify = (currentValue, depth = 1) => {
+  if (!_.isObject(currentValue)) {
+    return `${currentValue}`;
   }
-  const keys = Object.keys(value);
-  const result = keys.map((key) => {
-    const newKey = value[key];
-    return `${genIndent(depth + 1)}  ${key}: ${makeString(newKey, depth + 1)}`;
-  });
-  return `{\n${result.join('\n')}\n  ${genIndent(depth)}}`;
+
+  const indent = getIndent(depth);
+  const bracketIndent = getBracketIndent(depth);
+  const lines = Object
+    .entries(currentValue)
+    .map(([key, val]) => `${indent}  ${key}: ${stringify(val, depth + 1)}`);
+
+  return [
+    '{',
+    ...lines,
+    `${bracketIndent}}`,
+  ].join('\n');
 };
 
-const stylish = (data) => {
-  const iter = (node, depth = 1) => {
-    const result = node.map((item) => {
-      switch (item.type) {
-        case 'nested': {
-          return `${genIndent(depth)}  ${item.key}: {\n${iter(item.children, depth + 1)}\n${genIndent(depth)}  }`;
-        }
+const stylish = (diff) => {
+  const iter = (data, depth = 1) => {
+    const currentIndent = getIndent(depth);
+    const bracketIndent = getBracketIndent(depth);
+
+    const result = data.flatMap((node) => {
+      switch (node.type) {
+        case 'nested':
+          return `${currentIndent}  ${node.key}: ${iter(node.children, depth + 1)}`;
+
         case 'deleted':
-          return `${genIndent(depth)}- ${item.key}: ${makeString(item.value, depth)}`;
+          return `${currentIndent}- ${node.key}: ${stringify(node.value1, depth + 1)}`;
+
         case 'added':
-          return `${genIndent(depth)}+ ${item.key}: ${makeString(item.value, depth)}`;
-        case 'changed':
-          return (`${genIndent(depth)}- ${item.key}: ${makeString(item.value1, depth)}\n${genIndent(depth)}+ ${item.key}: ${makeString(item.value2, depth)}`);
+          return `${currentIndent}+ ${node.key}: ${stringify(node.value2, depth + 1)}`;
+
         case 'unchanged':
-          return `${genIndent(depth)}  ${item.key}: ${makeString(item.value, depth)}`;
+          return `${currentIndent}  ${node.key}: ${stringify(node.value1, depth + 1)}`;
+
+        case 'changed':
+          return [
+            `${currentIndent}- ${node.key}: ${stringify(node.value1, depth + 1)}`,
+            `${currentIndent}+ ${node.key}: ${stringify(node.value2, depth + 1)}`,
+          ];
+
         default:
-          throw new Error(`Unknown type ${item.type}`);
+          throw new Error(`Unknown type: '${node.type}'!`);
       }
     });
-    return result.join('\n');
+    return ['{', ...result, `${bracketIndent}}`].join('\n');
   };
-  return `{\n${iter(data)}\n}`;
+  return iter(diff);
 };
+
 export default stylish;

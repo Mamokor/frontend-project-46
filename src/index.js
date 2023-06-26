@@ -1,19 +1,15 @@
-import { readFileSync } from 'fs';
-import path from 'path';
-import buildDiff from './buildDiff.js';
-import parse from './parsers.js';
-import format from './formatters/index.js';
+import { readFileSync } from 'node:fs';
+import buildDiff from './build-diff.js';
+import defineOutputFormat from './formatters/index.js';
+import getFixturePath, { defineFileFormat } from './helpers.js';
+import parser from './parsers.js';
 
-const getAbsolutePath = (filepath) => path.resolve(process.cwd(), filepath);
-const readFile = (filepath) => readFileSync(getAbsolutePath(filepath), 'utf-8');
-const getFormat = (filename) => filename.split('.')[1];
-
-const genDiff = (filepath1, filepath2, nameOfFormat = 'stylish') => {
-  const content1 = readFile(filepath1);
-  const content2 = readFile(filepath2);
-  const data1 = parse(content1, getFormat(filepath1));
-  const data2 = parse(content2, getFormat(filepath2));
-  const tree = buildDiff(data1, data2);
-  return format(tree, nameOfFormat);
+const genDiff = (filePath1, filePath2, formatName = 'stylish') => {
+  const file1 = parser(readFileSync(getFixturePath(filePath1), 'utf-8'), defineFileFormat(filePath1));
+  const file2 = parser(readFileSync(getFixturePath(filePath2), 'utf-8'), defineFileFormat(filePath2));
+  const diff = buildDiff(file1, file2);
+  const formatOutput = defineOutputFormat(formatName);
+  return formatOutput(diff);
 };
+
 export default genDiff;
